@@ -38,9 +38,9 @@
   <color type="primary" scheme_preference="dark">#14a1e3</color>
   </branding>
 	<releases>
-	<release version="0.19.2" date="2024-10-21">
+	<release version="0.19.2" date="2024-12-10">
                 <description>
-Beta
+For the changelog see https://github.com/jasp-stats/jasp-desktop/releases/tag/v0.19.2
                 </description>
         </release>
         <release version="0.19.1" date="2024-09-10">
