@@ -137,6 +137,8 @@ if(APPLE)
     COMMAND ${CMAKE_COMMAND} -E make_directory JASP
     COMMAND ${CMAKE_COMMAND} -E copy "${CPACK_DMG_VOLUME_NAME}"
             ${CMAKE_BINARY_DIR}/JASP/
+    COMMAND chmod -r a+r "JASP/${CPACK_DMG_VOLUME_NAME}"
+    COMMAND chmod -r a+x "JASP/${CPACK_DMG_VOLUME_NAME}/Contents/MacOS"
     COMMAND
       codesign --verbose --verify --deep --force --sign
 	      "${APPLE_CODESIGN_IDENTITY}" ${OPTIONS_RUNTIME}
