@@ -30,8 +30,12 @@
 #include "archivereader.h"
 #include "tempfiles.h"
 #include "../exporters/jaspexporter.h"
+#include "log.h"
 
 #include "resultstesting/compareresults.h"
+#include "data/jaspencryptiondata.h"
+#include "data/jaspencrypt.h"
+#include "utilities/desktopcommunicator.h"
 
 void JASPImporter::loadDataSet(const std::string &path, std::function<void(int)> progressCallback)
 {	
@@ -41,7 +45,22 @@ void JASPImporter::loadDataSet(const std::string &path, std::function<void(int)>
 
 	packageData->setIsJaspFile(true);
 
-	readManifest(path);
+	//do some decrybting if necessary
+	bool encrypted = JASPEncrypt::detectEncryptedJASPFile(path);
+	std::filesystem::path tmpPath = path;
+	if(encrypted) {
+		try {
+			JaspEncryptionData::getInstance()->setEncryptionActive(true);
+			tmpPath = std::filesystem::temp_directory_path() / ("_tmp_unlock_" + std::filesystem::path(path).filename().generic_string());
+			Json::Value root;
+			DesktopCommunicator::singleton()->queryEncryptionSettings();
+			JASPEncrypt::decrypt(tmpPath, path, JaspEncryptionData::getInstance()->getPassword(), root, false);
+		} catch (std::exception& e) {
+			Log::log() << "Decrypt failed: " << e.what() << std::endl;
+			throw std::runtime_error("Decryption failed. Please confirm the password was right. \n\n" + std::string(" Technical Reason: ") + std::string(e.what()));
+		}
+	}
+	readManifest(tmpPath.generic_string());
 
 	switch(isCompatible())
 	{
@@ -59,9 +78,12 @@ void JASPImporter::loadDataSet(const std::string &path, std::function<void(int)>
 	JASPTIMER_STOP(JASPImporter::loadDataSet INIT);
 
 	packageData->beginLoadingData();
-	loadDataArchive(path, progressCallback);
-	loadJASPArchive(path, progressCallback);
+	loadDataArchive(tmpPath.generic_string(), progressCallback);
+	loadJASPArchive(tmpPath.generic_string(), progressCallback);
 	packageData->endLoadingData();
+
+	if(encrypted) //delete the decrypted tmp file we made
+		std::filesystem::remove(tmpPath);
 }
 
 JASPImporter::Compatibility JASPImporter::isCompatible(const std::string &path)
@@ -84,7 +106,7 @@ void JASPImporter::loadDataArchive(const std::string &path, std::function<void(i
     //Store sqlite into tempfiles:
 	//ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)+"-wal").writeEntryToTempFiles([&](float p){ progressCallback(1.333 * p); });
 	//ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)+"-shm").writeEntryToTempFiles([&](float p){ progressCallback(2.333 * p); });
-    ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)).writeEntryToTempFiles([&](float p){ progressCallback(33.333 * p); });
+	ArchiveReader(path, DatabaseInterface::singleton()->dbFile(true)).writeEntryToTempFiles([&](float p){ progressCallback(33.333 * p); });
 	
 	DataSetPackage::pkg()->loadDataSet([&](float p){ progressCallback(33.333 + 33.333 * p); });
 
@@ -137,7 +159,6 @@ void JASPImporter::loadJASPArchive(const std::string &path, std::function<void(i
 
 	progressCallback(100); //"Initializing Analyses & Results",
 }
-
 
 void JASPImporter::readManifest(const std::string &path)
 {
