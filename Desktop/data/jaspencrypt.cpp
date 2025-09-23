@@ -92,7 +92,7 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 	fileInfo["crypt_password_hash_salt"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(passwordHashSalt), sizeof passwordHashSalt));
 	fileInfo["crypt_public_key"] = asymetric ? std::string(optionalPublickeyReceiver) : base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey));
 	fileInfo["crypt_public_key_sender"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey));
-	fileInfo["crypt_ciphertext_length"] = data.size();
+	fileInfo["crypt_ciphertext_length"] = (uint64_t)data.size();
 	fileInfo["crypt_asymetric_encryption"] = asymetric; //for submissions to jasp, company internal, or something special
 
 	//copy the provided publickey of the receiver into our the publickey array for encryption
