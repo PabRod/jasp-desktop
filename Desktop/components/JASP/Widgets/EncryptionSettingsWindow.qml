@@ -8,16 +8,15 @@ Window
 {
     id:	encryptWindow
 
-    width: contentColumn.implicitWidth + jaspTheme.generalAnchorMargin
-    height: contentColumn.implicitHeight + jaspTheme.generalAnchorMargin
-    minimumWidth: 450
+    width: contentColumn.implicitWidth + 50 * jaspTheme.uiScale
+    height: contentColumn.implicitHeight + 50 * jaspTheme.uiScale
 
 
     // default property alias	content:			contentInfo.children
     //         property string labelcolor:			"#F99800"
     //         property string closebuttoncolor:	jaspTheme.blue
 
-    visible:				encryptionModel.visible
+    visible:                encryptionModel.visible
     title:					qsTr("Enter Encryption Settings")
 
     color:                  jaspTheme.white
@@ -32,6 +31,8 @@ Window
     }
 
     onClosing: closeModel()
+
+    onVisibleChanged: passwordInput.forceActiveFocus();
 
     Shortcut { onActivated: closeModel();	sequences: ["Ctrl+Q", "Ctrl+W", Qt.Key_Close]; }
 
@@ -50,9 +51,10 @@ Window
         TextField {
             id: passwordInput
             text: qsTr("Password:")
-            // echoMode: TextInput.Password
             enabled: !disableCheckbox.checked
             width: 300 * preferencesModel.uiScale
+            control.echoMode: TextInput.Password
+            control.	Keys.onReturnPressed: (event)=> { submitButton.onClicked() }
         }
 
         CheckBox {

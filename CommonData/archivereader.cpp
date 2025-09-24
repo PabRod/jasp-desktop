@@ -36,7 +36,6 @@ ArchiveReader::ArchiveReader(const string &archivePath, const string &entryPath,
 	_entryPath		= entryPath;
 	_archivePath	= archivePath;
 
-    _passwdCallback = passwdCallback;
 	openEntry(archivePath, entryPath);
 }
 
@@ -55,9 +54,7 @@ void ArchiveReader::openEntry(const string &archivePath, const string &entryPath
 
 	if (_archiveExists)
 	{
-		_archive = archive_read_new();
-        if(_passwdCallback)
-            archive_read_set_passphrase_callback(_archive, nullptr, _passwdCallback);
+        _archive = archive_read_new();
 		archive_read_support_filter_all(_archive);
 		archive_read_support_format_all(_archive);
 

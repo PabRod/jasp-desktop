@@ -35,7 +35,7 @@
 class ArchiveReader
 {
 public:
-    ArchiveReader(const char* (*passwdCallback)(struct archive*, void*) = nullptr){_passwdCallback = passwdCallback;}
+    ArchiveReader(){};
     ArchiveReader(const std::string &archivePath, const std::string &entryPath, const char* (*passwdCallback)(struct archive*, void*) = nullptr);
 	ArchiveReader(ArchiveReader && other) = default;
 
@@ -140,9 +140,6 @@ private:
 								_currentRead	= 0;
 	std::string					_archivePath,
 								_entryPath;
-
-    const char* (*_passwdCallback)(struct archive*, void*) = nullptr;
-
 
 };
 
