@@ -19,9 +19,9 @@
 //  ▼ │                          │             crypt_ciphertext_length                     uint64                      y
 //    ├──────────────────────────┤             crypt_encryption_nonce                      base64 encoded string       Encryption Nonce (crypto_box_curve25519xsalsa20poly1305_NONCEBYTES 24B)
 //  ▲ │                          │             crypt_password_hash_salt                    base64 encoded string       Password Hash Salt (Argon2id 16 bytes)
-//  │ │                          │             crypt_public_key                            base64 encoded string       crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES 32B
+//  │ │                          │             crypt_public_key                            base64 encoded string       crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES 32B (only present if asym)
 // 8│ │    Format Version #: 1   │             crypt_asymetric_encryption                  bool
-//  │ │                          │             crypt_public_key_sender                     base64 encoded string       crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES 32B
+//  │ │                          │             crypt_public_key_sender                     base64 encoded string       crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES 32B (only present if asym)
 //  ▼ │                          │             additional items
 //    ├──────────────────────────┤
 //  ▲ │                          │                        Cipher Text:
@@ -90,8 +90,8 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 	fileInfo["data_length"] = data.size() - crypto_box_MACBYTES - headerHashSize;
 	fileInfo["crypt_encryption_nonce"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(encryptionNonce), sizeof encryptionNonce));
 	fileInfo["crypt_password_hash_salt"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(passwordHashSalt), sizeof passwordHashSalt));
-	fileInfo["crypt_public_key"] = asymetric ? std::string(optionalPublickeyReceiver) : base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey));
-	fileInfo["crypt_public_key_sender"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey));
+    fileInfo["crypt_public_key"] = asymetric ? std::string(optionalPublickeyReceiver) : "";
+    fileInfo["crypt_public_key_sender"] = asymetric ? base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey)) : "";
 	fileInfo["crypt_ciphertext_length"] = (uint64_t)data.size();
 	fileInfo["crypt_asymetric_encryption"] = asymetric; //for submissions to jasp, company internal, or something special
 
