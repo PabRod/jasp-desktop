@@ -31,7 +31,7 @@
 using namespace std;
 
 
-ArchiveReader::ArchiveReader(const string &archivePath, const string &entryPath,  const char* (*passwdCallback)(struct archive*, void*))
+ArchiveReader::ArchiveReader(const string &archivePath, const string &entryPath)
 {
 	_entryPath		= entryPath;
 	_archivePath	= archivePath;
