@@ -8,8 +8,8 @@
 namespace JASPEncrypt {
 
 bool detectEncryptedJASPFile(const std::filesystem::path& file);
-int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, const std::string_view optionalPublickeyReceiver = "");
-int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, bool secretIsPrivKey);
+int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, const std::string_view optionalPublickeyReceiver = "", const std::string_view forcedPasswordSalt  = "", bool secretIsPrivKey = false);
+int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, std::string& responsePublickey, std::string& responsePasswordSalt, bool secretIsPrivKey = false);
 
 }
 

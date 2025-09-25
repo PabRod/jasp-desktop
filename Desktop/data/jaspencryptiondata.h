@@ -21,8 +21,15 @@ public:
 	std::string getPassword() {return encryptionActive() ? _password : ""; };
 	void setPassword(std::string newPassword) { _password = newPassword; }
 
-	std::string getPublicKey(); //base64 encoded public key
-	void setPublicKey(const std::string& key) {_publickeyToUse = key;}
+    std::string getPublicKeyResponse(); //base64 encoded public key
+    void setPublicKeyResponse(const std::string& key) {_publickeyResponse = key;}
+
+    std::string getPrivatekey() { return _privatekey; } //base64 encoded private key
+    void setPrivatekey(const std::string& key) {_privatekey = key;}
+
+    //these are only used when forming a response in mixed privkey/password mode (eg response jaspTeamSubmission)
+    std::string getPasswordSaltResponse(); //base64 encoded passwordsalt
+    void setPasswordSaltResponse(const std::string& key) {_passwordSaltResponse = key;}
 
 	void reset();
 
@@ -32,7 +39,9 @@ private:
     JaspEncryptionData() {}
 
     std::string _password = "";
-	std::string _publickeyToUse = "";
+    std::string _publickeyResponse = "";
+    std::string _passwordSaltResponse = "";
+    std::string _privatekey = "";
     bool _encryptionActive = false;
 	bool _jaspTeamSubmission = false;
 	bool _parametersSet = false;

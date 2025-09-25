@@ -32,7 +32,14 @@ Window
 
     onClosing: closeModel()
 
-    onVisibleChanged: passwordInput.forceActiveFocus();
+    onVisibleChanged: {
+        passwordInput.displayValue = ""
+        privateKey.displayValue = ""
+        publicKey.displayValue = ""
+        showAdvancedCheckbox.checked = false
+        jaspSubmission.checked = false
+        passwordInput.forceActiveFocus();
+    }
 
     Shortcut { onActivated: closeModel();	sequences: ["Ctrl+Q", "Ctrl+W", Qt.Key_Close]; }
 
@@ -62,34 +69,43 @@ Window
             text: qsTr("JASP Team Submission.")
         }
 
-        // CheckBox {
-        //     id: showAdvancedCheckbox
-        //     text: "Show advanced settings"
-        // }
+        CheckBox {
+            id: showAdvancedCheckbox
+            text: "Advanced Settings"
+        }
 
-        // Column {
-        //     id: advancedSettings
-        //     visible: showAdvancedCheckbox.checked
+        Column {
+            id: advancedSettings
+            visible: showAdvancedCheckbox.checked
 
-        //     Text {
-        //         text: "Advanced setting:"
-        //     }
+            Text {
+                text: "Advanced setting:"
+            }
 
-        //     TextField {
-        //         id: publicKey
-        //         placeholderText: "Enter Receivers Publickey"
-        //         width: 300 * preferencesModel.uiScale
-        //     }
-        // }
+            TextField {
+                id: privateKey
+                text: "Private key (base64):"
+                placeholderText: ""
+                control.echoMode: TextInput.Password
+            }
+
+            TextField {
+                id: publicKey
+                text: "Receiver Public key (base64):"
+                placeholderText: ""
+            }
+        }
 
         Button {
             id: submitButton
             text: qsTr("Submit")
-            width: 300 * preferencesModel.uiScale
+            width: parent.width
             onClicked: {
                 encryptionModel.encryptionActive = true;
                 encryptionModel.password = passwordInput.displayValue;
                 encryptionModel.jaspSubmission = jaspSubmission.checked;
+                encryptionModel.publickey = publicKey.displayValue;
+                encryptionModel.privatekey = privateKey.displayValue
                 closeModel();
             }
         }

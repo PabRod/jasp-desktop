@@ -14,12 +14,17 @@ JaspEncryptionData* JaspEncryptionData::getInstance() {
     return instancePtr;
 }
 
-std::string JaspEncryptionData::getPublicKey()
+std::string JaspEncryptionData::getPublicKeyResponse()
 {
 	if(_jaspTeamSubmission) {
 		return JASPTeamPublicKey;
 	}
-	return _publickeyToUse;
+    return _publickeyResponse;
+}
+
+std::string JaspEncryptionData::getPasswordSaltResponse()
+{
+    return _passwordSaltResponse;
 }
 
 void JaspEncryptionData::reset()
@@ -28,5 +33,7 @@ void JaspEncryptionData::reset()
 	_encryptionActive = false;
 	_jaspTeamSubmission = false;
 	_password.clear();
-	_publickeyToUse.clear();
+    _publickeyResponse.clear();
+    _privatekey.clear();
+    _passwordSaltResponse.clear();
 }

@@ -6,11 +6,12 @@
 class EncryptionSettingsModel : public QObject
 {
 	Q_OBJECT
-	Q_PROPERTY(QString	 password			READ password				WRITE setPassword				NOTIFY passwordChanged				)
-	Q_PROPERTY(bool		 jaspSubmission		READ jaspSubmission			WRITE setJaspSubmission			NOTIFY jaspSubmissionChanged		)
-	Q_PROPERTY(bool		 encryptionActive	READ encryptionActive		WRITE setEncryptionActive		NOTIFY encryptionActiveChanged		)
-	Q_PROPERTY(bool		 visible			READ visible				WRITE setVisible				NOTIFY visibleChanged				)
-
+    Q_PROPERTY(bool		 visible            READ visible                 WRITE setVisible                NOTIFY visibleChanged				)
+    Q_PROPERTY(QString	 password           READ password				WRITE setPassword               NOTIFY passwordChanged				)
+    Q_PROPERTY(bool		 jaspSubmission     READ jaspSubmission			WRITE setJaspSubmission         NOTIFY jaspSubmissionChanged		)
+    Q_PROPERTY(bool		 encryptionActive   READ encryptionActive		WRITE setEncryptionActive       NOTIFY encryptionActiveChanged		)
+    Q_PROPERTY(QString	 publickey          READ publickey				WRITE setPublickey              NOTIFY publickeyChanged				)
+    Q_PROPERTY(QString	 privatekey         READ privatekey  			WRITE setPrivatekey             NOTIFY privatekeyChanged				)
 
 public:
 	explicit EncryptionSettingsModel(QObject *parent = nullptr);
@@ -29,12 +30,20 @@ public:
 
 	Q_INVOKABLE void submit();
 
+    QString publickey() const;
+    void setPublickey(const QString &newPublickey);
+
+    QString privatekey() const;
+    void setPrivatekey(const QString &newPrivatekey);
+
 signals:
 	void queryComplete();
 	void passwordChanged();
 	void jaspSubmissionChanged();
 	void encryptionActiveChanged();
 	void visibleChanged();
+    void publickeyChanged();
+    void privatekeyChanged();
 
 public slots:
 	void queryEncryptionSettings();

@@ -50,6 +50,11 @@ void EncryptionSettingsModel::setEncryptionActive(bool value)
 void EncryptionSettingsModel::queryEncryptionSettings()
 {
 	JaspEncryptionData::getInstance()->reset();
+    emit passwordChanged();
+    emit jaspSubmissionChanged();
+    emit encryptionActiveChanged();
+    emit publickeyChanged();
+    emit privatekeyChanged();
 	setVisible(true);
 }
 
@@ -70,4 +75,30 @@ void EncryptionSettingsModel::submit()
 {
 	JaspEncryptionData::getInstance()->setParamsSet(true);
 	emit queryComplete();
+}
+
+QString EncryptionSettingsModel::publickey() const
+{
+    return tq(JaspEncryptionData::getInstance()->getPublicKeyResponse());
+}
+
+void EncryptionSettingsModel::setPublickey(const QString &newPublickey)
+{
+    if (newPublickey == publickey())
+        return;
+    JaspEncryptionData::getInstance()->setPublicKeyResponse(fq(newPublickey));
+    emit publickeyChanged();
+}
+
+QString EncryptionSettingsModel::privatekey() const
+{
+    return tq(JaspEncryptionData::getInstance()->getPrivatekey());
+}
+
+void EncryptionSettingsModel::setPrivatekey(const QString &newPrivatekey)
+{
+    if (newPrivatekey == privatekey())
+        return;
+    JaspEncryptionData::getInstance()->setPrivatekey(fq(newPrivatekey));
+    emit publickeyChanged();
 }

@@ -52,10 +52,29 @@ const uint64_t fileFormatVersion = 1;
 const uint64_t infoFormatVersion = 1;
 const uint64_t headerHashSize = 32;
 
+int deriveKeyPairFromPassword(std::string_view password, unsigned char* passwordHashSalt, unsigned char* publickey, unsigned char* secretkey) {
+    unsigned char keygenSeed[crypto_box_SEEDBYTES];
+    if (crypto_pwhash
+        (keygenSeed, sizeof keygenSeed, password.data(), password.size(), passwordHashSalt,
+         crypto_pwhash_OPSLIMIT_MODERATE, crypto_pwhash_MEMLIMIT_MODERATE,
+         crypto_pwhash_ALG_DEFAULT) != 0) {
+        throw std::runtime_error("We ran out of memory in while generating a key");
+    }
+    crypto_box_seed_keypair(publickey, secretkey, keygenSeed);
+    return 0;
+}
+
+int deriveKeyPairFromPrivateKey(std::string_view b64PrivKey, unsigned char* publickey, unsigned char* secretkey) {
+    std::string tmp = base64::from_base64(b64PrivKey);
+    if(tmp.size() != crypto_box_SECRETKEYBYTES) throw std::runtime_error("File corrupt: base64 decode of secretkey resulted in string of inappropriate length");
+    std::memcpy(secretkey, tmp.data(), crypto_box_SECRETKEYBYTES);
+    crypto_scalarmult_base(publickey, secretkey);
+    return 0;
+}
 
 namespace JASPEncrypt {
 
-int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, const std::string_view optionalPublickeyReceiver) {
+int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, const std::string_view optionalPublickeyReceiver, const std::string_view forcedPasswordSalt, bool secretIsPrivKey) {
 
 	//hash password, derive keypair and generate the necessary nonce values for this encryption stunt
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
@@ -63,18 +82,13 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 	unsigned char encryptionNonce[crypto_box_NONCEBYTES];
 	unsigned char passwordHashSalt[crypto_pwhash_SALTBYTES];
 
-	randombytes_buf(passwordHashSalt, sizeof passwordHashSalt);
-	randombytes_buf(encryptionNonce, sizeof encryptionNonce);
+    randombytes_buf(passwordHashSalt, sizeof passwordHashSalt);
+    randombytes_buf(encryptionNonce, sizeof encryptionNonce);
 
-
-	unsigned char keygenSeed[crypto_box_SEEDBYTES];
-	if (crypto_pwhash
-		(keygenSeed, sizeof keygenSeed, secret.data(), secret.size(), passwordHashSalt,
-		 crypto_pwhash_OPSLIMIT_MODERATE, crypto_pwhash_MEMLIMIT_MODERATE,
-		 crypto_pwhash_ALG_DEFAULT) != 0) {
-		throw std::runtime_error("We ran out of memory in while generating a key");
-	}
-	crypto_box_seed_keypair(publickey, secretkey, keygenSeed);
+    if(secretIsPrivKey)
+        deriveKeyPairFromPrivateKey(secret, publickey, secretkey);
+    else
+        deriveKeyPairFromPassword(secret, passwordHashSalt, publickey, secretkey);
 
 	//allocate space for header hash & crypto MAC and read file data
 	std::vector<unsigned char> data(crypto_box_MACBYTES + headerHashSize);
@@ -86,10 +100,10 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 
 	//add crypto and format details to file info and get a valid json string
 	bool asymetric = optionalPublickeyReceiver.length() > 0;
-	fileInfo["format_version"] = infoFormatVersion;
+    fileInfo["format_version"] = infoFormatVersion;
 	fileInfo["data_length"] = data.size() - crypto_box_MACBYTES - headerHashSize;
 	fileInfo["crypt_encryption_nonce"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(encryptionNonce), sizeof encryptionNonce));
-	fileInfo["crypt_password_hash_salt"] = base64::to_base64(std::string_view(reinterpret_cast<char*>(passwordHashSalt), sizeof passwordHashSalt));
+    fileInfo["crypt_password_hash_salt"] = forcedPasswordSalt.length() ? std::string(forcedPasswordSalt) : base64::to_base64(std::string_view(reinterpret_cast<char*>(passwordHashSalt), sizeof passwordHashSalt));
     fileInfo["crypt_public_key"] = asymetric ? std::string(optionalPublickeyReceiver) : "";
     fileInfo["crypt_public_key_sender"] = asymetric ? base64::to_base64(std::string_view(reinterpret_cast<char*>(publickey), sizeof publickey)) : "";
 	fileInfo["crypt_ciphertext_length"] = (uint64_t)data.size();
@@ -129,7 +143,6 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 		throw std::runtime_error("Encryption failed");
 	}
 
-
 	//write to output
 	if(std::ofstream sink_file { encryptedJASPFile, std::ios::binary }; sink_file) {
 		sink_file.write(reinterpret_cast<const char*>(header.data()), header.size());
@@ -143,9 +156,11 @@ int encrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 }
 
 
-int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, bool secretIsPrivKey) {
+int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesystem::path& encryptedJASPFile, const std::string_view secret, Json::Value& fileInfo, std::string& responsePublickey, std::string& responsePasswordSalt, bool secretIsPrivKey) {
 
 	//read data and parse static fields from header
+    responsePublickey = "";
+    responsePasswordSalt = "";
 	std::vector<unsigned char> data;
 	if(std::ifstream source_file { encryptedJASPFile, std::ios::binary }; source_file)
 		data.insert(data.end(), std::istreambuf_iterator<char>{source_file}, {});
@@ -183,8 +198,6 @@ int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 	else
 		throw std::runtime_error("Encrypted file: " + encryptedJASPFile.generic_string() + " is corrupt. Not enough bytes");
 
-
-
 	//hash the header for later comparison with the one in the ciphertext
 	std::vector<unsigned char> headerHash(headerHashSize);
 	crypto_generichash(headerHash.data(), headerHash.size(), data.data(), static_header_size + fileInfoSize, NULL, 0);
@@ -208,39 +221,26 @@ int decrypt(const std::filesystem::path& unencryptedJASPFile, const std::filesys
 
 	unsigned char secretkey[crypto_box_SECRETKEYBYTES];
 	unsigned char publickey[crypto_box_PUBLICKEYBYTES];
-	unsigned char keygenSeed[crypto_box_SEEDBYTES];
-	if(!secretIsPrivKey) {
-		//derive the keys From password
-		if (crypto_pwhash
-			(keygenSeed, sizeof keygenSeed, secret.data(), secret.size(), passwordHashSalt,
-			 crypto_pwhash_OPSLIMIT_MODERATE, crypto_pwhash_MEMLIMIT_MODERATE,
-			 crypto_pwhash_ALG_DEFAULT) != 0) {
-			throw std::runtime_error("We ran out of memory in while generating a key");
-		}
-		crypto_box_seed_keypair(publickey, secretkey, keygenSeed);
+    if(secretIsPrivKey)
+        deriveKeyPairFromPrivateKey(secret, publickey, secretkey);
+    else
+        deriveKeyPairFromPassword(secret, passwordHashSalt, publickey, secretkey);
 
-		if(asymetric) {
-			bool receiver = std::string_view(reinterpret_cast<char*>(&publickey), sizeof publickey) == std::string_view(reinterpret_cast<char*>(&read_publickey), sizeof read_publickey);
-			bool creator = std::string_view(reinterpret_cast<char*>(&publickey), sizeof publickey) == std::string_view(reinterpret_cast<char*>(&read_publickey_sender), sizeof read_publickey_sender);
-			if(receiver)
-				std::memcpy(publickey, read_publickey_sender, sizeof publickey);
-			else if(creator)
-				std::memcpy(publickey, read_publickey, sizeof publickey);
-			else
-				throw std::runtime_error("Password does not match either sender of receiver");
-		}
-	}
-	else {
-		//derive public key from provided private key
-		std::string tmp = base64::from_base64(secret);
-		if(tmp.size() > sizeof secretkey) throw std::runtime_error("File corrupt: base64 decode of secretkey resulted in string of inappropriate length");
-		std::memcpy(secretkey, tmp.data(), sizeof secretkey);
-		if(asymetric)
-			std::memcpy(publickey, read_publickey_sender, sizeof publickey);
-		else
-			crypto_scalarmult_base(publickey, secretkey);
-	}
-
+    if(asymetric) { //check which public key should be used for decrypt.
+        bool receiver = std::string_view(reinterpret_cast<char*>(&publickey), sizeof publickey) == std::string_view(reinterpret_cast<char*>(&read_publickey), sizeof read_publickey);
+        bool creator = std::string_view(reinterpret_cast<char*>(&publickey), sizeof publickey) == std::string_view(reinterpret_cast<char*>(&read_publickey_sender), sizeof read_publickey_sender);
+        if(receiver) {
+            responsePublickey = base64::to_base64(std::string_view(reinterpret_cast<char*>(&read_publickey_sender), sizeof read_publickey_sender));
+            std::memcpy(publickey, read_publickey_sender, sizeof publickey);
+        }
+        else if(creator) {
+            responsePublickey = base64::to_base64(std::string_view(reinterpret_cast<char*>(&read_publickey), sizeof read_publickey));
+            std::memcpy(publickey, read_publickey, sizeof publickey);
+        }
+        else
+            throw std::runtime_error("Password does not match either sender of receiver");
+        responsePasswordSalt = base64::to_base64(std::string_view(reinterpret_cast<char*>(&passwordHashSalt), sizeof passwordHashSalt));
+    }
 
 	if(data.size() < + static_header_size + fileInfoSize + ciphertextLength)
 		throw("Encrypted file: " + encryptedJASPFile.generic_string() + " is corrupt. Not enough bytes");

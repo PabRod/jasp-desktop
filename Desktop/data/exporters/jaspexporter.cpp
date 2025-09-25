@@ -83,7 +83,11 @@ void JASPExporter::saveDataSet(const std::string &path, std::function<void(int)>
 	if(encrypt) {
 		Json::Value root;
 		try {
-			JASPEncrypt::encrypt(tmpPath, path, JaspEncryptionData::getInstance()->getPassword(), root, JaspEncryptionData::getInstance()->getPublicKey());
+            auto privKey = JaspEncryptionData::getInstance()->getPrivatekey();
+            if(privKey.length()) //check if user want to use privkey or password to encrypt
+                JASPEncrypt::encrypt(tmpPath, path, privKey, root, JaspEncryptionData::getInstance()->getPublicKeyResponse(), JaspEncryptionData::getInstance()->getPasswordSaltResponse(), true);
+            else
+                JASPEncrypt::encrypt(tmpPath, path, JaspEncryptionData::getInstance()->getPassword(), root, JaspEncryptionData::getInstance()->getPublicKeyResponse());
 		} catch (std::exception& e) {
 			Log::log() << "Encryption failed: " << e.what() << std::endl;
 			throw std::runtime_error("Encryption failed. Click 'Save As' and save as normal Jasp File. \n\n" + std::string(" Technical Reason: ") + std::string(e.what()));

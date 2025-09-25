@@ -54,8 +54,16 @@ void JASPImporter::loadDataSet(const std::string &path, std::function<void(int)>
 			tmpPath = std::filesystem::temp_directory_path() / ("_tmp_unlock_" + std::filesystem::path(path).filename().generic_string());
 			Json::Value root;
 			DesktopCommunicator::singleton()->queryEncryptionSettings();
-			JASPEncrypt::decrypt(tmpPath, path, JaspEncryptionData::getInstance()->getPassword(), root, false);
-		} catch (std::exception& e) {
+            auto privKey = JaspEncryptionData::getInstance()->getPrivatekey();
+            std::string responsePublicKey = "";
+            std::string responsePasswordSalt = "";
+            if(privKey.length()) //check if user want to use privkey or password to decrypt
+                JASPEncrypt::decrypt(tmpPath, path, privKey, root, responsePublicKey, responsePasswordSalt, true);
+            else
+                JASPEncrypt::decrypt(tmpPath, path, JaspEncryptionData::getInstance()->getPassword(), root, responsePublicKey, responsePasswordSalt, false);
+            JaspEncryptionData::getInstance()->setPublicKeyResponse(responsePublicKey);
+            JaspEncryptionData::getInstance()->setPasswordSaltResponse(responsePasswordSalt);
+        } catch (std::exception& e) {
 			Log::log() << "Decrypt failed: " << e.what() << std::endl;
 			throw std::runtime_error("Decryption failed. Please confirm the password was right. \n\n" + std::string(" Technical Reason: ") + std::string(e.what()));
 		}
