@@ -58,10 +58,9 @@ Window
         TextField {
             id: passwordInput
             text: qsTr("Password:")
-            enabled: !disableCheckbox.checked
             width: 300 * preferencesModel.uiScale
             control.echoMode: TextInput.Password
-            control.	Keys.onReturnPressed: (event)=> { submitButton.onClicked() }
+            control.Keys.onReturnPressed: (event)=> { submitButton.onClicked() }
         }
 
         CheckBox {
@@ -74,24 +73,20 @@ Window
             text: "Advanced Settings"
         }
 
-        Column {
+        Group {
             id: advancedSettings
             visible: showAdvancedCheckbox.checked
 
-            Text {
-                text: "Advanced setting:"
-            }
-
             TextField {
                 id: privateKey
-                text: "Private key (base64):"
+                label: "Private key (base64):"
                 placeholderText: ""
                 control.echoMode: TextInput.Password
             }
 
             TextField {
                 id: publicKey
-                text: "Receiver Public key (base64):"
+                label: "Receiver Public key (base64):"
                 placeholderText: ""
             }
         }

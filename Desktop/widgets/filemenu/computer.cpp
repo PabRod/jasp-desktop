@@ -104,7 +104,7 @@ FileEvent *Computer::browseSave(const QString &path, FileEvent::FileMode mode)
 		break;
 
 	case FileEvent::FileSave:
-		caption = tr("Save");
+        caption = tr("Save (encrypted) JASP file");
 		filter  = tr("JASP Files") + " (*.jasp);;" + tr("Encrypted JASP Files") + " (*.jasp)";
 		if(!browsePath.endsWith(".jasp"))
 			browsePath += ".jasp";
@@ -131,7 +131,7 @@ FileEvent *Computer::browseSave(const QString &path, FileEvent::FileMode mode)
 															 !finalPath.endsWith(".tsv",  Qt::CaseInsensitive))	)	finalPath.append(QString(".csv"));
 
 		JaspEncryptionData::getInstance()->reset();
-		if(selectedFilter.contains("encrypt", Qt::CaseInsensitive))
+        if(selectedFilter.contains("encrypt", Qt::CaseInsensitive))
 			JaspEncryptionData::getInstance()->setEncryptionActive(true);
 		else
 			JaspEncryptionData::getInstance()->setEncryptionActive(false);
