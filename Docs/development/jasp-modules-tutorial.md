@@ -99,12 +99,31 @@ Below there's a screenshot of one of the submodules of `jaspModuleTemplate` (sou
 ### How do the different moving parts work together?
 
 So, we have a graphical user interface communicating back and forth with an R backend.
-How does this work?
+How does this work? 
+The basic information flow is summarized in the diagram below:
+
+```mermaid
+graph TD
+
+description.qml --"contains one or more"--> Analyses --"pointing to a"--> qml[inst/qml/filename.qml] & func[R/filename.R#function_name]
+
+func --with signature--> signature[jaspResults, dataset, options]
+
+qml --that defines interactive objects--> name[name: obj_name] --that are passed to --> options[options$obj_name] --in--> signature --processes all and creates an--> output["User-friendly output"]
+
+
+```
+
+- Where
+	- `jaspResults` creates the output
+	- `dataset` can be input via `New Data` button
+	- `options` are interactive objects available in the module
+
+### Making your life easier
 
 In order to help you learning these crucial mechanics, we created `jaspModuleTemplate`.
 It serves simultaneously as a template and as a tacit tutorial.
 You can find it [here](https://github.com/jasp-stats/jaspModuleTemplate); take a look at the readme!
-
 
 
 ## 4. How to install a developer JASP module
